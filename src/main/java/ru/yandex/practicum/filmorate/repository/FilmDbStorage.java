@@ -277,10 +277,11 @@ public class FilmDbStorage implements FilmStorage {
                 "LEFT JOIN FILMS_DIRECTORS AS FD ON " +
                 "F.ID = FD.FILM_ID LEFT JOIN DIRECTORS AS D ON FD.DIRECTOR_ID = D.ID " +
                 "LEFT JOIN LIKES AS L ON L.FILM_ID = F.ID LEFT JOIN MPA AS M ON M.ID = F.MPA_ID WHERE " +
-                "F.NAME ~* ? OR D.NAME ~* ? GROUP BY F.ID ORDER BY COUNT(USER_ID) DESC";
+                "F.NAME ~* ? OR D.NAME ~* ? GROUP BY F.ID, L.USER_ID ";
 
         List<Film> films = jdbcTemplate.query(searchFilmsByDirectorAndTittle,
-                new FilmRowMapper(genreDbStorage, mpaDbStorage, likesDbStorage, directorDbStorage), query, query);
+                new FilmRowMapper(genreDbStorage, mpaDbStorage, likesDbStorage, directorDbStorage), query, query).stream()
+                .distinct().sorted(Comparator.comparing(Film::getRate).reversed()).collect(Collectors.toList());
 
         return films;
     }
@@ -291,10 +292,11 @@ public class FilmDbStorage implements FilmStorage {
                 "LEFT JOIN FILMS_DIRECTORS AS FD ON " +
                 "F.ID = FD.FILM_ID LEFT JOIN DIRECTORS AS D ON FD.DIRECTOR_ID = D.ID " +
                 "LEFT JOIN LIKES AS L ON L.FILM_ID = F.ID LEFT JOIN MPA AS M ON M.ID = F.MPA_ID WHERE " +
-                "F.NAME ~* ? GROUP BY F.ID ORDER BY COUNT(USER_ID) DESC";
+                "F.NAME ~* ? GROUP BY F.ID ";
 
         List<Film> films = jdbcTemplate.query(searchFilmsByDirectorAndTittle,
-                new FilmRowMapper(genreDbStorage, mpaDbStorage, likesDbStorage, directorDbStorage), query);
+                new FilmRowMapper(genreDbStorage, mpaDbStorage, likesDbStorage, directorDbStorage), query).stream()
+                .distinct().sorted(Comparator.comparing(Film::getRate)).collect(Collectors.toList());
 
         return films;
     }
@@ -305,10 +307,11 @@ public class FilmDbStorage implements FilmStorage {
                 "LEFT JOIN FILMS_DIRECTORS AS FD ON " +
                 "F.ID = FD.FILM_ID LEFT JOIN DIRECTORS AS D ON FD.DIRECTOR_ID = D.ID " +
                 "LEFT JOIN LIKES AS L ON L.FILM_ID = F.ID LEFT JOIN MPA AS M ON M.ID = F.MPA_ID WHERE " +
-                " D.NAME ~* ? GROUP BY F.ID ORDER BY COUNT(USER_ID) DESC";
+                " D.NAME ~* ? GROUP BY F.ID, L.USER_ID ";
 
         List<Film> films = jdbcTemplate.query(searchFilmsByDirectorAndTittle,
-                new FilmRowMapper(genreDbStorage, mpaDbStorage, likesDbStorage, directorDbStorage), query);
+                new FilmRowMapper(genreDbStorage, mpaDbStorage, likesDbStorage, directorDbStorage), query).stream()
+                .distinct().sorted(Comparator.comparing(Film::getRate)).collect(Collectors.toList());
 
         return films;
     }
