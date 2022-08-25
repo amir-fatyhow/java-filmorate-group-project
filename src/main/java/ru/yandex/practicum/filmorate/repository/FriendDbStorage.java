@@ -24,16 +24,16 @@ public class FriendDbStorage implements FriendStorage {
 
     @Override
     public void addFriend(long userId, long friendId) throws UserNotFound {
-        userService.getUserById(userId);
-        userService.getUserById(friendId);
+        userService.getUserById(userId); // Проверяем наличие User
+        userService.getUserById(friendId); // Проверяем наличие User
         String sql = "INSERT INTO FRIENDS (USER_ID, FRIEND_ID, STATUS) VALUES (?, ?, ?)";
         jdbcTemplate.update(sql, userId, friendId, Boolean.TRUE);
     }
 
     @Override
     public void deleteFriend(long userId, long friendId) throws UserNotFound {
-        userService.getUserById(userId);
-        userService.getUserById(friendId);
+        userService.getUserById(userId); // Проверяем наличие User
+        userService.getUserById(friendId); // Проверяем наличие User
         String sql = "DELETE FROM FRIENDS WHERE USER_ID = ? AND FRIEND_ID = ?";
         jdbcTemplate.update(sql, userId, friendId);
         jdbcTemplate.update(sql, friendId, userId);
@@ -41,7 +41,7 @@ public class FriendDbStorage implements FriendStorage {
 
     @Override
     public List<User> getAllFriends(long id) throws UserNotFound {
-        userService.getUserById(id);
+        userService.getUserById(id); // Проверяем наличие User
         String sqlFriend = "SELECT * FROM USERS " +
                 "LEFT JOIN FRIENDS ON USERS.ID=FRIENDS.FRIEND_ID " +
                 "WHERE FRIENDS.USER_ID = ?";
@@ -50,8 +50,8 @@ public class FriendDbStorage implements FriendStorage {
 
     @Override
     public List<User> getAllCommonFriends(long userId, long otherUserId) throws UserNotFound {
-        userService.getUserById(userId);
-        userService.getUserById(otherUserId);
+        userService.getUserById(userId); // Проверяем наличие User
+        userService.getUserById(otherUserId); // Проверяем наличие User
         String sqlFriend = "SELECT * FROM " +
                 "(SELECT * FROM USERS LEFT JOIN FRIENDS ON USERS.ID=FRIENDS.FRIEND_ID WHERE FRIENDS.USER_ID = ?) t1 " +
                 "JOIN " +

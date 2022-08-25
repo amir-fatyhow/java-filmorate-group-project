@@ -25,7 +25,7 @@ public class EventDbStorage implements EventStorage {
     public void addEvent(long userId, EventType eventType, Operation operation, long entityId) throws UserNotFound {
         String sql = "INSERT INTO EVENTS (EVENT_DATE, USER_ID, EVENT_TYPE, OPERATION, ENTITY_ID) VALUES (?, ?, ?, ?, ?)";
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, new String[] {"EVENT_ID"});
+            PreparedStatement ps = connection.prepareStatement(sql, new String[]{"EVENT_ID"});
             ps.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
             ps.setLong(2, userId);
             ps.setString(3, eventType.name());

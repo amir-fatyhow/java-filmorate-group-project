@@ -26,7 +26,7 @@ public class DirectorDbStorage implements DirectorStorage {
         String sql = "INSERT INTO DIRECTORS (NAME) VALUES (?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, new String[] {"ID"});
+            PreparedStatement ps = connection.prepareStatement(sql, new String[]{"ID"});
             ps.setString(1, director.getName());
             return ps;
         }, keyHolder);
@@ -53,7 +53,7 @@ public class DirectorDbStorage implements DirectorStorage {
     @Override
     public Director updateDirector(Director director) throws DirectorNotFound {
         try {
-            getDirectorById(director.getId());
+            getDirectorById(director.getId()); // Проверяем наличие Director
             String sql = "UPDATE DIRECTORS SET NAME = ? WHERE ID = ?";
             jdbcTemplate.update(sql, director.getName(), director.getId());
             return director;
@@ -70,7 +70,8 @@ public class DirectorDbStorage implements DirectorStorage {
 
     @Override
     public List<Director> getDirectorsByFilmId(long id) {
-        String sql = "SELECT D.NAME, D.ID FROM DIRECTORS AS D JOIN FILMS_DIRECTORS AS FD ON D.ID = FD.DIRECTOR_ID " +
+        String sql = "SELECT D.NAME, D.ID FROM DIRECTORS AS D " +
+                "JOIN FILMS_DIRECTORS AS FD ON D.ID = FD.DIRECTOR_ID " +
                 "WHERE  FD.FILM_ID = ?";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Director.class), id);
     }

@@ -30,5 +30,5 @@ public class LikesService {
         eventService.addEvent(userId, EventType.LIKE, Operation.REMOVE, filmId);
         log.info("Like deleted");
     }
-    
+
 }

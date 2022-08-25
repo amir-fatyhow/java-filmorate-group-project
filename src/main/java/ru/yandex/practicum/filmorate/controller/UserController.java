@@ -110,7 +110,7 @@ public class UserController {
      * Возвращаем ленту событий пользователя
      */
     @GetMapping("/{id}/feed")
-    public List<Event> getAllEvents(@PathVariable long id) {
+    public List<Event> getAllEvents(@PathVariable long id) throws UserNotFound {
         return eventService.getAllEvents(id);
     }
 
@@ -118,7 +118,7 @@ public class UserController {
      * Возвращаем рекомендации по фильмам для просмотра
      */
     @GetMapping("/{userId}/recommendations")
-    public List<Film> getRecommendations(@PathVariable long userId) {
+    public List<Film> getRecommendations(@PathVariable long userId) throws UserNotFound {
         return filmService.getRecommendations(userId);
     }
 

@@ -6,6 +6,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exeption.FilmNotFound;
 import ru.yandex.practicum.filmorate.exeption.GenreNotFound;
 import ru.yandex.practicum.filmorate.mapper.GenreRowMapper;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -37,7 +38,7 @@ public class GenreDbStorage implements GenreStorage {
     }
 
     @Override
-    public List<Genre> getGenresByFilmId(long id) {
+    public List<Genre> getGenresByFilmId(long id) throws FilmNotFound {
         String sql = "SELECT * FROM GENRE WHERE ID IN " +
                 "(SELECT GENRE_ID FROM FILMS_GENRES WHERE FILM_ID = ?)";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Genre.class), id);

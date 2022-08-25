@@ -8,6 +8,8 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exeption.DirectorNotFound;
 import ru.yandex.practicum.filmorate.exeption.FilmNotFound;
+import ru.yandex.practicum.filmorate.exeption.GenreNotFound;
+import ru.yandex.practicum.filmorate.exeption.UserNotFound;
 import ru.yandex.practicum.filmorate.mapper.FilmRowMapper;
 import ru.yandex.practicum.filmorate.mapper.GenreRowMapper;
 import ru.yandex.practicum.filmorate.model.Director;
@@ -19,10 +21,9 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Types;
 import java.time.LocalDate;
-import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.Comparator;
 
 
 @Repository
@@ -47,7 +48,7 @@ public class FilmDbStorage implements FilmStorage {
                 "VALUES (?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, new String[] {"ID"});
+            PreparedStatement ps = connection.prepareStatement(sql, new String[]{"ID"});
             ps.setString(1, film.getName());
             ps.setInt(2, film.getMpa().getId());
             ps.setString(3, film.getDescription());
@@ -91,7 +92,7 @@ public class FilmDbStorage implements FilmStorage {
     public Film updateFilm(Film film) throws FilmNotFound {
         film.setGenres(film.getGenres().stream().distinct().collect(Collectors.toList()));
         film.setDirectors(film.getDirectors().stream().distinct().collect(Collectors.toList()));
-        getFilmById(film.getId());
+        getFilmById(film.getId()); // Проверяем наличие Film
         String sql = "UPDATE FILMS SET " +
                 "NAME = ?, " +
                 "MPA_ID = ?, " +
@@ -145,7 +146,7 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getPopularByGenre(int genreId) {
+    public List<Film> getPopularByGenre(int genreId) throws GenreNotFound {
         String sql = "SELECT TOP ? * FROM FILMS " +
                 "JOIN MPA ON FILMS.MPA_ID=MPA.ID " +
                 "LEFT JOIN LIKES L ON FILMS.ID = L.FILM_ID LEFT JOIN FILMS_GENRES AS FG ON FILMS.ID = FG.FILM_ID " +
@@ -172,13 +173,14 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getPopularFilmsByGenreAndYear(int count, int genreId, String year) {
+    public List<Film> getPopularFilmsByGenreAndYear(int count, int genreId, String year) throws GenreNotFound {
         String sql = "SELECT TOP ? * FROM FILMS " +
                 "JOIN MPA ON FILMS.MPA_ID=MPA.ID " +
-                "LEFT JOIN LIKES L ON FILMS.ID = L.FILM_ID LEFT JOIN FILMS_GENRES AS FG ON FILMS.ID = FG.FILM_ID " +
-                "WHERE (RELEASE_DATE >= ? AND RELEASE_DATE <= ?) AND FG.GENRE_ID = ?" +
-                "GROUP BY FILMS.ID, " +
-                "L.USER_ID " +
+                "LEFT JOIN LIKES L ON FILMS.ID = L.FILM_ID " +
+                "LEFT JOIN FILMS_GENRES AS FG ON FILMS.ID = FG.FILM_ID " +
+                "WHERE (RELEASE_DATE >= ? AND RELEASE_DATE <= ?) " +
+                "AND FG.GENRE_ID = ?" +
+                "GROUP BY FILMS.ID, L.USER_ID " +
                 "ORDER BY COUNT(USER_ID) DESC";
         String firstBoundOfDate = year + "-01-01";
         String secondBoundOfDate = year + "-12-31";
@@ -192,15 +194,17 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getCommonFilms(int userId, int friendId) {
-        String sql = "SELECT * FROM FILMS AS F JOIN MPA ON F.MPA_ID=MPA.ID LEFT JOIN LIKES L " +
-                "ON F.ID = L.FILM_ID LEFT JOIN FILMS_GENRES AS FG ON F.ID = FG.FILM_ID WHERE L.USER_ID = ? " +
+    public List<Film> getCommonFilms(int userId, int friendId) throws UserNotFound {
+        String sql = "SELECT * FROM FILMS AS F " +
+                "JOIN MPA ON F.MPA_ID=MPA.ID " +
+                "LEFT JOIN LIKES L ON F.ID = L.FILM_ID " +
+                "LEFT JOIN FILMS_GENRES AS FG ON F.ID = FG.FILM_ID WHERE L.USER_ID = ? " +
                 "AND F.ID IN (SELECT LIKES.FILM_ID FROM LIKES WHERE USER_ID = ?) " +
-                "GROUP BY F.ID, " +
-                "L.USER_ID ORDER BY COUNT(USER_ID) DESC LIMIT ?";
+                "GROUP BY F.ID, L.USER_ID " +
+                "ORDER BY COUNT(USER_ID) DESC LIMIT ?";
 
         return jdbcTemplate.query(sql, new FilmRowMapper(genreDbStorage, mpaDbStorage,
-                likesDbStorage, directorDbStorage),  friendId, userId, 10);
+                likesDbStorage, directorDbStorage), friendId, userId, 10);
     }
 
     @Override
@@ -250,11 +254,13 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getAllFilmsByDirector(int directorId, String sortBy) throws DirectorNotFound {
         try {
-            directorDbStorage.getDirectorById(directorId);
+            directorDbStorage.getDirectorById(directorId); // Проверяем наличие Director
             if (sortBy.equals("year")) {
                 String sql = "SELECT * FROM FILMS " +
                         "RIGHT JOIN FILMS_DIRECTORS AS FD ON FILMS.ID=FD.FILM_ID " +
-                        "JOIN MPA ON FILMS.MPA_ID=MPA.ID WHERE FD.DIRECTOR_ID = ? ORDER BY RELEASE_DATE";
+                        "JOIN MPA ON FILMS.MPA_ID=MPA.ID " +
+                        "WHERE FD.DIRECTOR_ID = ? " +
+                        "ORDER BY RELEASE_DATE";
                 return jdbcTemplate.query(sql, new FilmRowMapper(genreDbStorage, mpaDbStorage, likesDbStorage, directorDbStorage), directorId);
             } else if (sortBy.equals("likes")) {
                 String sql = "SELECT * FROM FILMS " +
@@ -276,13 +282,18 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getSearchFilmsByTittleAndDirector(String query) {
         String searchFilmsByDirectorAndTittle = "SELECT * FROM FILMS AS F " +
-                "LEFT JOIN FILMS_DIRECTORS AS FD ON " +
-                "F.ID = FD.FILM_ID LEFT JOIN DIRECTORS AS D ON FD.DIRECTOR_ID = D.ID " +
-                "LEFT JOIN LIKES AS L ON L.FILM_ID = F.ID LEFT JOIN MPA AS M ON M.ID = F.MPA_ID WHERE " +
-                "F.NAME ~* ? OR D.NAME ~* ? GROUP BY F.ID, L.USER_ID ";
+                "LEFT JOIN FILMS_DIRECTORS AS FD ON F.ID = FD.FILM_ID " +
+                "LEFT JOIN DIRECTORS AS D ON FD.DIRECTOR_ID = D.ID " +
+                "LEFT JOIN LIKES AS L ON L.FILM_ID = F.ID " +
+                "LEFT JOIN MPA AS M ON M.ID = F.MPA_ID " +
+                "WHERE F.NAME ~* ? OR D.NAME ~* ? " +
+                "GROUP BY F.ID, L.USER_ID ";
 
         List<Film> films = jdbcTemplate.query(searchFilmsByDirectorAndTittle,
-                new FilmRowMapper(genreDbStorage, mpaDbStorage, likesDbStorage, directorDbStorage), query, query).stream()
+                        new FilmRowMapper(genreDbStorage,
+                                mpaDbStorage,
+                                likesDbStorage,
+                                directorDbStorage), query, query).stream()
                 .distinct().sorted(Comparator.comparing(Film::getRate).reversed()).collect(Collectors.toList());
 
         return films;
@@ -291,13 +302,17 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getSearchFilmsByTittle(String query) {
         String searchFilmsByDirectorAndTittle = "SELECT * FROM FILMS AS F " +
-                "LEFT JOIN FILMS_DIRECTORS AS FD ON " +
-                "F.ID = FD.FILM_ID LEFT JOIN DIRECTORS AS D ON FD.DIRECTOR_ID = D.ID " +
-                "LEFT JOIN LIKES AS L ON L.FILM_ID = F.ID LEFT JOIN MPA AS M ON M.ID = F.MPA_ID WHERE " +
-                "F.NAME ~* ? GROUP BY F.ID ";
+                "LEFT JOIN FILMS_DIRECTORS AS FD ON F.ID = FD.FILM_ID " +
+                "LEFT JOIN DIRECTORS AS D ON FD.DIRECTOR_ID = D.ID " +
+                "LEFT JOIN LIKES AS L ON L.FILM_ID = F.ID " +
+                "LEFT JOIN MPA AS M ON M.ID = F.MPA_ID " +
+                "WHERE F.NAME ~* ? GROUP BY F.ID ";
 
         List<Film> films = jdbcTemplate.query(searchFilmsByDirectorAndTittle,
-                new FilmRowMapper(genreDbStorage, mpaDbStorage, likesDbStorage, directorDbStorage), query).stream()
+                        new FilmRowMapper(genreDbStorage,
+                                mpaDbStorage,
+                                likesDbStorage,
+                                directorDbStorage), query).stream()
                 .distinct().sorted(Comparator.comparing(Film::getRate)).collect(Collectors.toList());
 
         return films;
@@ -306,27 +321,33 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> getSearchFilmsByDirector(String query) {
         String searchFilmsByDirectorAndTittle = "SELECT * FROM FILMS AS F " +
-                "LEFT JOIN FILMS_DIRECTORS AS FD ON " +
-                "F.ID = FD.FILM_ID LEFT JOIN DIRECTORS AS D ON FD.DIRECTOR_ID = D.ID " +
-                "LEFT JOIN LIKES AS L ON L.FILM_ID = F.ID LEFT JOIN MPA AS M ON M.ID = F.MPA_ID WHERE " +
-                " D.NAME ~* ? GROUP BY F.ID, L.USER_ID ";
+                "LEFT JOIN FILMS_DIRECTORS AS FD ON F.ID = FD.FILM_ID " +
+                "LEFT JOIN DIRECTORS AS D ON FD.DIRECTOR_ID = D.ID " +
+                "LEFT JOIN LIKES AS L ON L.FILM_ID = F.ID " +
+                "LEFT JOIN MPA AS M ON M.ID = F.MPA_ID " +
+                "WHERE D.NAME ~* ? " +
+                "GROUP BY F.ID, L.USER_ID ";
 
         List<Film> films = jdbcTemplate.query(searchFilmsByDirectorAndTittle,
-                new FilmRowMapper(genreDbStorage, mpaDbStorage, likesDbStorage, directorDbStorage), query).stream()
+                        new FilmRowMapper(genreDbStorage,
+                                mpaDbStorage,
+                                likesDbStorage,
+                                directorDbStorage), query).stream()
                 .distinct().sorted(Comparator.comparing(Film::getRate)).collect(Collectors.toList());
 
         return films;
     }
 
     @Override
-    public List<Film> getRecommendations(long userId) {
+    public List<Film> getRecommendations(long userId) throws UserNotFound {
         String sql = "SELECT F.ID, F.NAME, MPA.ID, MPA.NAME, F.DESCRIPTION, F.RELEASE_DATE, F.DURATION " +
                 //отбираем все фильмы, которые лайкнул текущий пользователь
                 "FROM LIKES AS L1 " +
                 //присоединяем других пользователей, лайкнувших такие же фильмы
                 "JOIN LIKES AS L2 ON L2.FILM_ID = L1.FILM_ID AND L1.USER_ID = ? " +
                 //присоединяем все фильмы, которые лайнули другие пользователи и не лайкнул текущий
-                "JOIN LIKES AS L3 ON L3.USER_ID = L2.USER_ID AND L3.USER_ID != ? " +
+                "JOIN LIKES AS L3 ON L3.USER_ID = L2.USER_ID " +
+                "AND L3.USER_ID != ? " +
                 "AND L3.FILM_ID NOT IN (SELECT FILM_ID FROM LIKES WHERE USER_ID = ?) " +
                 //обогащаем информацию о фильмах и их жанрах
                 "JOIN FILMS AS F ON F.ID = L3.FILM_ID " +
@@ -335,8 +356,10 @@ public class FilmDbStorage implements FilmStorage {
                 //"вес" лайка другого пользователя равен числу совпадений по лайкам этого пользователя с текущим
                 "GROUP BY L3.FILM_ID ORDER BY COUNT(*) DESC";
 
-        return jdbcTemplate.query(sql, new FilmRowMapper(genreDbStorage, mpaDbStorage,
-                likesDbStorage, directorDbStorage), userId, userId, userId);
+        return jdbcTemplate.query(sql, new FilmRowMapper(genreDbStorage,
+                mpaDbStorage,
+                likesDbStorage,
+                directorDbStorage), userId, userId, userId);
     }
 
 }

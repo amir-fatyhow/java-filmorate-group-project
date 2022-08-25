@@ -26,7 +26,7 @@ public class UserService {
     }
 
     public User getUserById(long userId) throws UserNotFound {
-       return userStorage.getUserById(userId);
+        return userStorage.getUserById(userId);
     }
 
     public User updateUser(User user) throws UserNotFound {

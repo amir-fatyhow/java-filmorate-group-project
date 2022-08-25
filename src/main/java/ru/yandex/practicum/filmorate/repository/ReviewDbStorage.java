@@ -19,6 +19,7 @@ import ru.yandex.practicum.filmorate.service.EventService;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.service.UserService;
 import ru.yandex.practicum.filmorate.storage.ReviewStorage;
+
 import java.sql.PreparedStatement;
 import java.util.List;
 
@@ -31,7 +32,6 @@ public class ReviewDbStorage implements ReviewStorage {
     private final JdbcTemplate jdbcTemplate;
     private final FilmService filmService;
     private final UserService userService;
-
     private final EventService eventService;
 
     public Boolean isReviewExist(long reviewId) {
@@ -46,8 +46,8 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public Review addReview(Review review) throws UserNotFound, FilmNotFound {
-        userService.getUserById(review.getUserId());
-        filmService.getFilmById(review.getFilmId());
+        userService.getUserById(review.getUserId()); // Проверяем наличие User
+        filmService.getFilmById(review.getFilmId()); // Проверяем наличие Film
         String sql = "INSERT INTO REVIEWS (USEFUL, IS_POSITIVE, CONTENT, USER_ID, FILM_ID) VALUES (?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
@@ -76,7 +76,7 @@ public class ReviewDbStorage implements ReviewStorage {
                         review.getIsPositive(),
                         review.getContent(),
                         review.getReviewId());
-                eventService.addEvent( getReviewById(review.getReviewId()).getUserId(),
+                eventService.addEvent(getReviewById(review.getReviewId()).getUserId(),
                         EventType.REVIEW, Operation.UPDATE, review.getReviewId());
                 return review;
             } catch (EmptyResultDataAccessException e) {
@@ -89,7 +89,7 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public void deleteReview(long reviewId) throws ReviewNotFound {
-        Review review = getReviewById(reviewId);
+        Review review = getReviewById(reviewId); // Проверяем наличие Review
         String sql = "DELETE FROM REVIEWS WHERE REVIEW_ID = ?";
         eventService.addEvent(review.getUserId(), EventType.REVIEW, Operation.REMOVE, reviewId);
         jdbcTemplate.update(sql, reviewId);
@@ -112,7 +112,7 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     public List<Review> getAllReviewByFilmId(long filmId, int count) {
         if (filmId > 0) {
-            filmService.getFilmById(filmId);
+            filmService.getFilmById(filmId); // Проверяем наличие Film
             String sql = "SELECT TOP ? * FROM REVIEWS WHERE FILM_ID = ? ORDER BY USEFUL DESC";
             if (count != 0) {
                 return jdbcTemplate.query(sql, new ReviewRowMapper(), count, filmId);
@@ -131,8 +131,8 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public Review addLikeReview(long reviewId, long userId) throws ReviewNotFound, UserNotFound {
-        getReviewById(reviewId);
-        userService.getUserById(userId);
+        getReviewById(reviewId); // Проверяем наличие Review
+        userService.getUserById(userId); // Проверяем наличие User
         String sqlLike = "INSERT INTO REVIEWS_USERS (REVIEW_ID, USER_ID) VALUES (?, ?)";
         String sqlReviewUseful = "UPDATE REVIEWS SET USEFUL = USEFUL + 1 WHERE REVIEW_ID = ?";
         jdbcTemplate.update(sqlLike, reviewId, userId);
@@ -142,8 +142,8 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public Review addDislikeReview(long reviewId, long userId) throws ReviewNotFound, UserNotFound {
-        getReviewById(reviewId);
-        userService.getUserById(userId);
+        getReviewById(reviewId); // Проверяем наличие Review
+        userService.getUserById(userId); // Проверяем наличие User
         String sqlLike = "INSERT INTO REVIEWS_USERS (REVIEW_ID, USER_ID) VALUES (?, ?)";
         String sqlReviewUseful = "UPDATE REVIEWS SET USEFUL = USEFUL - 1 WHERE REVIEW_ID = ?";
         jdbcTemplate.update(sqlLike, reviewId, userId);
@@ -153,8 +153,8 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public void deleteLikeReview(long reviewId, long userId) throws ReviewNotFound, UserNotFound {
-        getReviewById(reviewId);
-        userService.getUserById(userId);
+        getReviewById(reviewId); // Проверяем наличие Review
+        userService.getUserById(userId); // Проверяем наличие User
         String sqlLike = "DELETE FROM REVIEWS_USERS WHERE REVIEW_ID = ? AND USER_ID = ?";
         String sqlReviewUseful = "UPDATE REVIEWS SET USEFUL = USEFUL - 1 WHERE REVIEW_ID = ?";
         jdbcTemplate.update(sqlLike, reviewId, userId);
@@ -163,8 +163,8 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public void deleteDislikeReview(long reviewId, long userId) throws ReviewNotFound, UserNotFound {
-        getReviewById(reviewId);
-        userService.getUserById(userId);
+        getReviewById(reviewId); // Проверяем наличие Review
+        userService.getUserById(userId); // Проверяем наличие User
         String sqlLike = "DELETE FROM REVIEWS_USERS WHERE REVIEW_ID = ? AND USER_ID = ?";
         String sqlReviewUseful = "UPDATE REVIEWS SET USEFUL = USEFUL + 1 WHERE REVIEW_ID = ?";
         jdbcTemplate.update(sqlLike, reviewId, userId);

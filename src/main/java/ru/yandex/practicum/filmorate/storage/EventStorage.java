@@ -10,8 +10,8 @@ import java.util.List;
 @Repository
 public interface EventStorage {
 
-   void addEvent(long userId, EventType eventType, Operation operation, long entityId);
+    void addEvent(long userId, EventType eventType, Operation operation, long entityId);
 
-   List<Event> getAllEvents(long id);
+    List<Event> getAllEvents(long id);
 
 }

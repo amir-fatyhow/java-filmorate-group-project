@@ -13,7 +13,9 @@ import ru.yandex.practicum.filmorate.mapper.UserRowMapper;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
-import java.sql.*;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -33,7 +35,7 @@ public class UserDbStorage implements UserStorage {
             user.setName(user.getLogin());
         }
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, new String[] {"ID"});
+            PreparedStatement ps = connection.prepareStatement(sql, new String[]{"ID"});
             ps.setString(1, user.getEmail());
             ps.setString(2, user.getLogin());
             ps.setString(3, user.getName());
@@ -76,21 +78,21 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User updateUser(User user) throws UserNotFound {
-            getUserById(user.getId());
-            String sql = "UPDATE USERS SET " +
-                    "EMAIL = ?, " +
-                    "LOGIN = ?, " +
-                    "NAME = ?, " +
-                    "BIRTHDAY = ? " +
-                    "WHERE ID = ?";
-            jdbcTemplate.update(sql,
-                    user.getEmail(),
-                    user.getLogin(),
-                    user.getName(),
-                    user.getBirthday(),
-                    user.getId()
-            );
-            return user;
+        getUserById(user.getId()); // Проверяем наличие User
+        String sql = "UPDATE USERS SET " +
+                "EMAIL = ?, " +
+                "LOGIN = ?, " +
+                "NAME = ?, " +
+                "BIRTHDAY = ? " +
+                "WHERE ID = ?";
+        jdbcTemplate.update(sql,
+                user.getEmail(),
+                user.getLogin(),
+                user.getName(),
+                user.getBirthday(),
+                user.getId()
+        );
+        return user;
     }
 
     @Override

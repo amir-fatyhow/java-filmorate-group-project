@@ -17,7 +17,6 @@ import ru.yandex.practicum.filmorate.storage.LikesStorage;
 public class LikesDbStorage implements LikesStorage {
 
     public final JdbcTemplate jdbcTemplate;
-
     private final EventService eventService;
 
     @Override
@@ -35,7 +34,7 @@ public class LikesDbStorage implements LikesStorage {
         try {
             String sql = "DELETE FROM LIKES WHERE FILM_ID = ? AND USER_ID = ?";
             jdbcTemplate.update(sql, filmId, userId);
-        }catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException e) {
             throw new FilmNotFound("Неверно указан id = " + filmId + " фильма.");
         }
     }
