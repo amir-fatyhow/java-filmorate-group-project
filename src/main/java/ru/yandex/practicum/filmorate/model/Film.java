@@ -32,7 +32,7 @@ public class Film {
     private LocalDate releaseDate;
     @Min(1)
     private int duration;
-    private Integer rate;
+    private Double rate;
     private List<Director> directors = new ArrayList<>();
 
 }
