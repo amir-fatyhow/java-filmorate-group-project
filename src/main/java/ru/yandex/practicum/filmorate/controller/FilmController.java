@@ -105,7 +105,7 @@ public class FilmController {
      */
     @PutMapping("/{filmId}/like/{userId}")
     public void addLike(@PathVariable long userId, @PathVariable long filmId,
-                        @RequestParam int mark) throws UserNotFound, FilmNotFound, InvalidMark {
+                        @RequestParam(defaultValue = "10") int mark) throws UserNotFound, FilmNotFound, InvalidMark {
         eventService.addEvent(userId, EventType.LIKE, Operation.ADD, filmId);
         likesService.addLikeToFilm(userId, filmId, mark);
     }

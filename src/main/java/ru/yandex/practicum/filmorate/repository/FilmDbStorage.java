@@ -322,25 +322,36 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> getRecommendations(long userId) throws UserNotFound {
-        String sql = "SELECT F.ID, F.NAME, MPA.ID, MPA.NAME, F.DESCRIPTION, F.RELEASE_DATE, F.DURATION " +
-                //отбираем все фильмы, которые лайкнул текущий пользователь
+        String sql = "SELECT F.ID, F.NAME, MPA.ID, MPA.NAME, F.DESCRIPTION, F.RELEASE_DATE, F.DURATION, F.RATE " +
+                //отбираем все фильмы, которые положительно оценил текущий пользователь
                 "FROM LIKES AS L1 " +
-                //присоединяем других пользователей, лайкнувших такие же фильмы
-                "JOIN LIKES AS L2 ON L2.FILM_ID = L1.FILM_ID AND L1.USER_ID = ? " +
-                //присоединяем все фильмы, которые лайнули другие пользователи и не лайкнул текущий
-                "JOIN LIKES AS L3 ON L3.USER_ID = L2.USER_ID " +
+                //присоединяем других пользователей, которые положительно оценили такие же фильмы
+                "JOIN LIKES AS L2 " +
+                "ON L2.FILM_ID = L1.FILM_ID " +
+                "AND L2.MARK > 5 " +
+                "AND L1.USER_ID = ? " +
+                "AND L1.MARK > 5 " +
+                //присоединяем все фильмы, которые оценили другие пользователи и ещё не оценил текущий
+                "JOIN LIKES AS L3 " +
+                "ON L3.USER_ID = L2.USER_ID " +
                 "AND L3.USER_ID != ? " +
                 "AND L3.FILM_ID NOT IN (SELECT FILM_ID FROM LIKES WHERE USER_ID = ?) " +
                 //обогащаем информацию о фильмах и их жанрах
-                "JOIN FILMS AS F ON F.ID = L3.FILM_ID " +
-                "JOIN MPA ON F.MPA_ID = MPA.ID " +
-                //вверху списка выводим фильм, набравший больше всего лайков других пользователей, с учётом их "весов"
-                //"вес" лайка другого пользователя равен числу совпадений по лайкам этого пользователя с текущим
-                "GROUP BY L3.FILM_ID ORDER BY COUNT(*) DESC";
+                "JOIN FILMS AS F " +
+                "ON F.ID = L3.FILM_ID " +
+                "JOIN MPA " +
+                "ON F.MPA_ID = MPA.ID " +
+                //вверху списка выводим фильм, получивший наивысшую положительную среднюю оценку от других пользователей
+                //средняя оценка расчитывается как сумма произведений оценок на их "вес", делённая на сумму "весов"
+                //"вес" оценки другого пользователя равен числу фильмов,
+                //которые одновременно положительно оценили и другой, и текущий пользователь
+                "GROUP BY L3.FILM_ID " +
+                "HAVING AVG(L3.MARK) > 5 " +
+                "ORDER BY AVG(L3.MARK) DESC " +
+                "LIMIT ?";
 
-        return jdbcTemplate.query(sql, new FilmRowMapper(genreDbStorage,
-                mpaDbStorage,
-                directorDbStorage), userId, userId, userId);
+        return jdbcTemplate.query(sql, new FilmRowMapper(genreDbStorage, mpaDbStorage, directorDbStorage), userId,
+                userId, userId, 5);
     }
 
 }

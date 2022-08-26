@@ -22,7 +22,7 @@ public class LikesDbStorage implements LikesStorage {
     @Override
     public void addLike(long userId, long filmId, int mark) throws UserNotFound, FilmNotFound {
         try {
-            String sql = "INSERT INTO LIKES (USER_ID, FILM_ID, MARK) VALUES ( ?, ?, ? )";
+            String sql = "MERGE INTO LIKES (USER_ID, FILM_ID, MARK) KEY (USER_ID, FILM_ID) VALUES ( ?, ?, ? )";
             jdbcTemplate.update(sql, userId, filmId, mark);
 
             String sqlFilm = "UPDATE FILMS SET RATE = ? WHERE ID = ?";
