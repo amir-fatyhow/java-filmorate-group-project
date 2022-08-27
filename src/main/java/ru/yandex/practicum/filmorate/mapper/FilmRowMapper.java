@@ -21,7 +21,6 @@ public class FilmRowMapper implements RowMapper<Film> {
 
     private final GenreDbStorage genreDbStorage;
     private final MpaDbStorage mpaDbStorage;
-    private final LikesDbStorage likesDbStorage;
     private final DirectorDbStorage directorDbStorage;
 
     @Override
@@ -36,7 +35,7 @@ public class FilmRowMapper implements RowMapper<Film> {
         film.setDescription(rs.getString("DESCRIPTION"));
         film.setDuration(rs.getInt("DURATION"));
         film.setReleaseDate(rs.getDate("RELEASE_DATE").toLocalDate());
-        film.setRate(likesDbStorage.getLikesCount(rs.getLong("ID")));
+        film.setRate(rs.getDouble("RATE"));
         film.setGenres(genreDbStorage.getGenresByFilmId(film.getId()));
         film.setDirectors(directorDbStorage.getDirectorsByFilmId(film.getId()));
         return film;

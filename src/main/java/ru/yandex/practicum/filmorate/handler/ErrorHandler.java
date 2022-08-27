@@ -14,7 +14,8 @@ public class ErrorHandler {
             MpaNotFound.class,
             GenreNotFound.class,
             DirectorNotFound.class,
-            ReviewNotFound.class})
+            ReviewNotFound.class,
+            InvalidMark.class})
     public ResponseEntity<String> runtimeHandler(final RuntimeException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("");
     }

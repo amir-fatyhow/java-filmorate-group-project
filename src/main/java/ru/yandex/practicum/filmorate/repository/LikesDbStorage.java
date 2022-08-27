@@ -20,10 +20,13 @@ public class LikesDbStorage implements LikesStorage {
     private final EventService eventService;
 
     @Override
-    public void addLike(long userId, long filmId) throws UserNotFound, FilmNotFound {
+    public void addLike(long userId, long filmId, int mark) throws UserNotFound, FilmNotFound {
         try {
-            String sql = "INSERT INTO LIKES (USER_ID, FILM_ID) VALUES ( ?, ? )";
-            jdbcTemplate.update(sql, userId, filmId);
+            String sql = "MERGE INTO LIKES (USER_ID, FILM_ID, MARK) KEY (USER_ID, FILM_ID) VALUES ( ?, ?, ? )";
+            jdbcTemplate.update(sql, userId, filmId, mark);
+
+            String sqlFilm = "UPDATE FILMS SET RATE = ? WHERE ID = ?";
+            jdbcTemplate.update(sqlFilm, getLikesCount(filmId), filmId);
         } catch (DataAccessException e) {
             throw e;
         }
@@ -34,15 +37,18 @@ public class LikesDbStorage implements LikesStorage {
         try {
             String sql = "DELETE FROM LIKES WHERE FILM_ID = ? AND USER_ID = ?";
             jdbcTemplate.update(sql, filmId, userId);
+
+            String sqlFilm = "UPDATE FILMS SET RATE = ? WHERE ID = ?";
+            jdbcTemplate.update(sqlFilm, getLikesCount(filmId), filmId);
         } catch (EmptyResultDataAccessException e) {
             throw new FilmNotFound("Неверно указан id = " + filmId + " фильма.");
         }
     }
 
     @Override
-    public Integer getLikesCount(long id) throws UserNotFound {
-        String sql = "SELECT COUNT(*) FROM LIKES WHERE FILM_ID = ?";
-        Integer likes = jdbcTemplate.queryForObject(sql, Integer.class, id);
+    public Double getLikesCount(long id) throws UserNotFound {
+        String sql = "SELECT AVG(MARK) FROM LIKES WHERE FILM_ID = ?";
+        Double likes = jdbcTemplate.queryForObject(sql, Double.class, id);
         return likes;
     }
 
