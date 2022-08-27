@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.enums.EventType;
 import ru.yandex.practicum.filmorate.enums.Operation;
 import ru.yandex.practicum.filmorate.exeption.FilmNotFound;
+import ru.yandex.practicum.filmorate.exeption.InvalidMark;
 import ru.yandex.practicum.filmorate.exeption.UserNotFound;
 import ru.yandex.practicum.filmorate.storage.LikesStorage;
 
@@ -19,8 +20,11 @@ public class LikesService {
 
     private final EventService eventService;
 
-    public void addLikeToFilm(long userId, long filmId) throws UserNotFound, FilmNotFound {
-        likesStorage.addLike(userId, filmId);
+    public void addLikeToFilm(long userId, long filmId, int mark) throws UserNotFound, FilmNotFound, InvalidMark {
+        if (mark > 10 || mark < 1) {
+            throw new InvalidMark("Неверное значение оценки.");
+        }
+        likesStorage.addLike(userId, filmId, mark);
         log.info("Like has been add");
     }
 
